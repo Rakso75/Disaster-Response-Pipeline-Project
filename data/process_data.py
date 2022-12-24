@@ -2,7 +2,16 @@ import sys
 
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    """
+    INPUT:
+    messages_filepath - path to messages csv file
+    categories_filepath - path to categories csv file
+    
+    OUTPUT:
+    df - Merged data
+    
+    """
+    
 
 
 def clean_data(df):
