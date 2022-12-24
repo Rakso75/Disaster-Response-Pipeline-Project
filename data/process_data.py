@@ -2,6 +2,7 @@ import sys
 
 
 def load_data(messages_filepath, categories_filepath):
+
     """
     INPUT:
     messages_filepath - path to messages csv file
@@ -12,10 +13,52 @@ def load_data(messages_filepath, categories_filepath):
     
     """
     
-
+    messages = pd.read_csv('./messages.csv')
+    categories = pd.read_csv('./categories.csv')
+    # merge datasets
+    df = messages.merge(categories, on='id')
+    return df
 
 def clean_data(df):
-    pass
+    
+    """
+    INPUT:
+    df - Merged data
+    
+    OUTPUT:
+    df - Cleaned data
+    """
+
+    # create a dataframe of the 36 individual category columns
+    categories = df.categories.str.split(pat=';', expand=True)
+    
+    # use the first row to extract a list of new column names for categories.
+row = categories.iloc[0]
+# one way is to apply a lambda function that takes everything 
+# up to the second to last character of each string with slicing
+category_colnames = row.transform(lambda x: x[:-2]).tolist()
+# rename the columns of `categories`
+categories.columns = category_colnames
+
+for column in categories:
+    # set each value to be the last character of the string
+    categories[column] = categories[column].astype(str).str[-1]
+    
+    # convert column from string to numeric
+    categories[column] = categories[column].astype(int)
+
+# drop the original categories column from `df`
+df.drop(columns=['categories'], inplace=True)
+# drop duplicates
+df.drop_duplicates(inplace=True)
+# remove 'child_alone' column as it has only 0 (ZERO) values. => no value for classification and prediction
+df = df.drop('child_alone', axis = 1)
+
+# Value '2' in 'related' column is causing problems later on in the ML pipeline(see above).
+# value '2' should be replaced with '0' or '1'. By majority vote it will be replace with '1'.
+df['related'] = df['related'].map(lambda x: 1 if x==2 else x) 
+
+return df
 
 
 def save_data(df, database_filename):
