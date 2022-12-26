@@ -29,7 +29,7 @@ def clean_data(df):
     OUTPUT:
     df - Cleaned data
     """
-
+##REMOVE##
 #     # remove 'child_alone' column as it has only 0 (ZERO) values. => no value for classification and prediction
 #     df = df.drop('child_alone', axis = 1)
 
