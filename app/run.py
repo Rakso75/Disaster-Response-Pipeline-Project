@@ -54,6 +54,7 @@ def index():
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
+        # Graph 1 - Distribution by genre
         {
             'data': [
                 Bar(
@@ -72,7 +73,7 @@ def index():
                 }
             }
         },
-        # GRAPH 2 -  distribution by category
+        # Graph 2 - Distribution by category
           {
             'data': [
                 Bar(
@@ -97,7 +98,7 @@ def index():
                 )
             }
         },
-        # GRAPH 3 -  Top 10 Message Categories
+        # Graph 3 - Top 10 Message Categories
                {
             'data': [
                 Bar(
