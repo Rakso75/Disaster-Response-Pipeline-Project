@@ -29,13 +29,6 @@ def clean_data(df):
     OUTPUT:
     df - Cleaned data
     """
-##REMOVE##
-#     # remove 'child_alone' column as it has only 0 (ZERO) values. => no value for classification and prediction
-#     df = df.drop('child_alone', axis = 1)
-
-#     # Value '2' in 'related' column is causing problems later on in the ML pipeline(see above).
-#     # value '2' should be replaced with '0' or '1'. By majority vote it will be replace with '1'.
-#     df['related'] = df['related'].map(lambda x: 1 if x==2 else x) 
 
     # create a dataframe of the 36 individual category columns
     categories = df.categories.str.split(pat=';', expand=True)
@@ -55,10 +48,25 @@ def clean_data(df):
         # convert column from string to numeric
         categories[column] = categories[column].astype(int)
 
+
     # drop the original categories column from `df`
     df.drop(columns=['categories'], inplace=True)
+    
+    # concatenate the original dataframe with the new `categories` dataframe
+    df = pd.concat([df, categories], axis=1)
+
     # drop duplicates
     df.drop_duplicates(inplace=True)
+    
+    # remove 'child_alone' column as it has only 0 (ZERO) values. => no value for classification and prediction
+    df = df.drop('child_alone', axis = 1)
+    
+    # Value '2' in 'related' column is causing problems later on in the ML pipeline(see below).
+    # "ValueError: multiclass-multioutput is not supported" <- in ML Pipeline Preparation.ipynb
+    # https://github.com/ThilinaRajapakse/simpletransformers/issues/88 -> aaronbriel commented on Jan 28
+    # value '2' should be replaced with '0' or '1'. By majority vote it will be replace with '1'.
+    df['related'] = df['related'].map(lambda x: 1 if x==2 else x) 
+
 
     return df
 
@@ -77,7 +85,7 @@ def save_data(df, database_filename):
     
     engine = create_engine('sqlite:///' + database_filename)
     table_name = database_filename.replace(".db","") + "_table"
-    df.to_sql(table_name, engine, index=False, if_exists='replace') # , if_exists='replace' ##REMOVE##
+    df.to_sql(table_name, engine, index=False, if_exists='replace')
 
     
 def main():
@@ -91,7 +99,7 @@ def main():
 
         print('Cleaning data...')
         df = clean_data(df)
-        
+        print(df.shape)
         print('Saving data...\n    DATABASE: {}'.format(database_filepath))
         save_data(df, database_filepath)
         
