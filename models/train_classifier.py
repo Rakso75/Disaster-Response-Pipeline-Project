@@ -19,7 +19,6 @@ from sklearn.svm import LinearSVC
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-#nltk.download(['punkt', 'wordnet', 'averaged_perceptron_tagger'])
 
 
 def load_data(database_filepath):
@@ -42,7 +41,10 @@ def load_data(database_filepath):
     X = df['message']   # only column 'message' relevant
     y = df.iloc[:,4:]
     
-    
+    category_names = y.columns
+
+    return X, y, category_names 
+
 
 def tokenize(text):
     """
@@ -77,60 +79,109 @@ def tokenize(text):
 
     return clean_tokens
 
-class StartingVerbExtractor(BaseEstimator, TransformerMixin):
-      """
-      Starting Verb Extractor class
-    
-      This class extract the starting verb of a sentence,
-      creating a new feature for the ML classifier
-      """
-
-  
-      def starting_verb(self, text):
-        sentence_list = nltk.sent_tokenize(text)
-        for sentence in sentence_list:
-            pos_tags = nltk.pos_tag(tokenize(sentence))
-            first_word, first_tag = pos_tags[0]
-            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
-                return True
-        return False
-
-      # Given it is a tranformer we can return the self
-        def fit(self, X, y=None):
-              return self
-
-        def transform(self, X):
-            X_tagged = pd.Series(X).apply(self.starting_verb)
-            return pd.DataFrame(X_tagged)
 
 
 def build_model():
-    pass
+    '''
+    Build a ML pipeline using Tfidf, Random Forest, and GridSearch
+    
+    Parameters: None
+    
+    Returns:
+        best model of GridSearchCV        
+    '''
+    # pipeline1 is best classifier with parameters from GridSearch, which is performed in the notebook
+    pipeline1 = Pipeline([
+            ('features', FeatureUnion([
+
+                ('text_pipeline', Pipeline([
+                    ('count_vectorizer', CountVectorizer(tokenizer=tokenize)),
+                    ('tfidf_transformer', TfidfTransformer())
+                ]))
+
+            ])),
+
+            ('classifier', MultiOutputClassifier(AdaBoostClassifier(n_estimators=10, learning_rate=0.01)))
+        ])
 
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+
+    pipeline2 = Pipeline([
+            ('features', FeatureUnion([
+
+                ('text_pipeline', Pipeline([
+                    ('count_vectorizer', CountVectorizer(tokenizer=tokenize)),
+                    ('tfidf_transformer', TfidfTransformer())
+                ]))
+
+            ])),
+
+            ('classifier', MultiOutputClassifier(estimator=RandomForestClassifier(random_state=42)))
+        ])
+
+    model = pipeline1
+    return model
 
 
+def evaluate_model(model, X_test, y_test, category_names):
+    """
+    Parameters:
+    
+    model - ML model
+    X_test - test messages (Features)
+    y_test - categories for test messages (Labels)
+    category_names - category name for y
+    
+    Returns:
+    
+    none - print scores (precision, recall, f1-score) for each output category of the dataset.
+    """
+
+    # report the f1 score, precision and recall for each output category of the dataset.
+
+    y_pred_test = model.predict(X_test)
+
+    # test accuracy
+    print("The test accuracy is: ")
+    print(accuracy_score(y_test, y_pred_test)*100)
+    print(" ")
+
+    # classification report
+    print("--------------------------------classification report TEST--------------------------------")
+    print(classification_report(y_test, y_pred_test, target_names=y_test.columns.values))
+
+    
 def save_model(model, model_filepath):
-    pass
+    """
+    Saves trained model as pickle file.
+    
+    Parameters:
+    
+    model - ML model
+    model_filepath - location to save the model
+    
+    Returns: none
+    """
+
+    with open(model_filepath, 'wb') as file:
+        pickle.dump(model, file)
 
 
 def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X, y, category_names = load_data(database_filepath)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         
         print('Building model...')
         model = build_model()
         
         print('Training model...')
-        model.fit(X_train, Y_train)
+        model.fit(X_train, y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        evaluate_model(model, X_test, y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
